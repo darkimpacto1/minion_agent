@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Minion Assistant Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: url("/static/minion_background.jpg") center center no-repeat;
+      background-size: cover;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background-color: rgb(75 85 99); border-radius: 3px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+      background-color: rgb(107 114 128);
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fade-in 0.4s ease-out; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+    .animate-bounce { animation: bounce 1.4s infinite ease-in-out both; }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+      50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.5); }
+    }
+    .animate-pulse-glow {
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    .icon { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .icon-sm { width: 16px; height: 16px; }
+
+    .loading-gif-container {
+      width: 70vw;
+      height: 70vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .summary-panel-container {
+      width: 30vw;
+      height: 30vh;
+      min-width: 300px;
+      min-height: 200px;
+    }
+
+    .completion-gif-container {
+      width: 25vw;
+      height: 25vh;
+      min-width: 200px;
+      min-height: 150px;
+    }
+  </style>
+</head>
+<body class="text-white min-h-screen">
+  <div id="overlay" class="fixed inset-0 bg-black/90 transition-opacity duration-1000 z-40 opacity-0 pointer-events-none"></div>
+
+  <div id="loading-gif" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+    <div class="loading-gif-container">
+      <img src="https://media4.giphy.com/media/YAlhwn67KT76E/giphy.gif"
+           alt="Processing..."
+           class="max-w-full max-h-full object-contain rounded-lg shadow-2xl">
+    </div>
+  </div>
+
+  <div id="summary-panel" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 hidden">
+    <div class="summary-panel-container">
+      <div class="bg-gray-800/95 backdrop-blur-sm rounded-2xl border border-blue-500/30 shadow-2xl animate-fade-in h-full flex flex-col animate-pulse-glow">
+        <div class="p-4 border-b border-gray-700/50 flex-shrink-0">
+          <h3 class="text-lg font-semibold text-blue-400 flex items-center gap-2">
+            📬 Email Summary
+          </h3>
+        </div>
+        <div class="p-4 flex-1 overflow-y-auto">
+          <p id="summary-content" class="text-gray-200 leading-relaxed text-sm"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="complete-gif" class="fixed bottom-[10%] left-1/2 transform -translate-x-1/2 z-50 text-center hidden">
+    <div class="completion-gif-container flex flex-col items-center justify-center">
+      <img src="https://media1.giphy.com/media/bh4jzePjmd9iE/giphy.gif"
+           alt="Complete!"
+           class="max-w-full max-h-[80%] object-contain rounded-lg shadow-lg">
+      <p class="text-green-400 font-semibold mt-2 animate-bounce text-sm">Summary Complete!</p>
+    </div>
+  </div>
+
+  <div class="container mx-auto max-w-4xl h-screen flex flex-col backdrop-blur-md bg-black/40 rounded-xl p-4">
+
+
+    <div class="flex-shrink-0 p-6 border-b border-gray-700/50 bg-gray-900/50 backdrop-blur-sm">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg">
+            <svg class="icon text-white" viewBox="0 0 24 24">
+              <path d="M12 8V4H8a2 2 0 0 0-2 2v6h4a2 2 0 0 1 2 2v4h4a2 2 0 0 0 2-2v-8z"/>
+              <path d="M8 14v4H4a2 2 0 0 1-2-2v-2z"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Minion Headquarter
+            </h1>
+            <p class="text-gray-400 text-sm">Powered by Minion Labs 🟡</p>
+          </div>
+        </div>
+        <div class="text-xs text-gray-500 font-mono">User ID: <span class="text-white">0000</span></div>
+      </div>
+    </div>
+
+    <div id="chat-container" class="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin">
+      <div id="welcome-message" class="text-center py-12 text-gray-400">
+        <svg class="icon w-16 h-16 mx-auto text-gray-600 mb-4" viewBox="0 0 24 24">
+          <path d="M12 8V4H8a2 2 0 0 0-2 2v6h4a2 2 0 0 1 2 2v4h4a2 2 0 0 0 2-2v-8z"/>
+          <path d="M8 14v4H4a2 2 0 0 1-2-2v-2z"/>
+        </svg>
+        <p class="text-lg">Start chattin’ with your banana-loving bot!</p>
+        <p class="text-sm mt-2 text-gray-500">Try: <span class="text-blue-300">"Summarize my emails"</span> or say "Bello!" 🍌</p>
+      </div>
+    </div>
+
+    <div id="error-message" class="mx-6 mb-4 p-4 bg-red-900/50 border border-red-500/50 rounded-lg hidden">
+      <p class="text-red-300 text-sm" id="error-text"></p>
+    </div>
+
+    <div class="flex-shrink-0 p-6 border-t border-gray-700/50 bg-gray-900/50 backdrop-blur-sm">
+      <form id="chat-form" class="flex gap-4">
+        <textarea
+          id="message-input"
+          placeholder="Type your message here..."
+          class="flex-1 px-4 py-3 bg-gray-800 border border-gray-600 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          rows="1"
+          style="min-height: 52px;"
+        ></textarea>
+        <button
+          type="submit"
+          id="send-button"
+          class="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
+        >
+          <svg class="icon icon-sm" viewBox="0 0 24 24">
+            <path d="m22 2-7 20-4-9-9-4Z"/>
+            <path d="M22 2 11 13"/>
+          </svg>
+          Send
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    class ChatApp {
+      constructor() {
+        this.userId = "0000";
+        this.chatContainer = document.getElementById('chat-container');
+        this.messageInput = document.getElementById('message-input');
+        this.sendButton = document.getElementById('send-button');
+        this.chatForm = document.getElementById('chat-form');
+        this.errorMessage = document.getElementById('error-message');
+        this.errorText = document.getElementById('error-text');
+        this.welcomeMessage = document.getElementById('welcome-message');
+        this.overlay = document.getElementById('overlay');
+        this.loadingGif = document.getElementById('loading-gif');
+        this.summaryPanel = document.getElementById('summary-panel');
+        this.summaryContent = document.getElementById('summary-content');
+        this.completeGif = document.getElementById('complete-gif');
+        this.messages = [];
+        this.isLoading = false;
+
+        this.chatForm.addEventListener('submit', (e) => this.handleSubmit(e));
+        this.messageInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            this.handleSubmit(e);
+          }
+        });
+
+        this.loadInitialHistory();
+      }
+
+      async loadInitialHistory() {
+        try {
+          const resp = await fetch('/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: this.userId, message: '__load__' })
+          });
+          const data = await resp.json();
+          if (data.history) {
+            data.history.forEach(m => this.addMessage(m.content, m.role));
+          }
+        } catch (e) {
+          console.error("Failed to load chat history:", e);
+        }
+      }
+
+      async handleSubmit(e) {
+        e.preventDefault();
+        const message = this.messageInput.value.trim();
+        if (!message || this.isLoading) return;
+
+        this.addMessage(message, 'user');
+        this.messageInput.value = '';
+        this.setLoading(true);
+
+        try {
+          const resp = await fetch('/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: this.userId, message })
+          });
+          const data = await resp.json();
+          const assistantMessage = data.response || '(no response)';
+          this.addMessage(assistantMessage, 'assistant');
+
+          if (message.toLowerCase().includes('summarize my emails')) {
+            await this.handleEmailSummaryAnimation(assistantMessage);
+          }
+        } catch (err) {
+          console.error(err);
+          this.showError("An error occurred. Please try again.");
+        } finally {
+          this.setLoading(false);
+        }
+      }
+
+      async handleEmailSummaryAnimation(response) {
+        this.overlay.classList.remove('pointer-events-none');
+        this.overlay.style.opacity = '1';
+        this.loadingGif.classList.remove('hidden');
+
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        this.loadingGif.classList.add('hidden');
+        this.summaryContent.textContent = response;
+        this.summaryPanel.classList.remove('hidden');
+        this.completeGif.classList.remove('hidden');
+
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        this.completeGif.classList.add('hidden');
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        this.summaryPanel.classList.add('hidden');
+        this.overlay.style.opacity = '0';
+
+        setTimeout(() => {
+          this.overlay.classList.add('pointer-events-none');
+        }, 1000);
+      }
+
+      addMessage(content, role) {
+        const wrapper = document.createElement('div');
+        wrapper.className = `flex gap-3 ${role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`;
+
+        const bubble = `
+          <div class="max-w-md px-4 py-3 rounded-2xl ${
+            role === 'user'
+              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
+              : 'bg-gray-800 text-gray-100 border border-gray-700'
+          }">
+            <strong class="block text-xs uppercase opacity-60 mb-1">${role === 'user' ? 'You' : 'Stuart🥸'}:</strong>
+            <p class="whitespace-pre-wrap">${content}</p>
+          </div>
+        `;
+        wrapper.innerHTML = bubble;
+        this.chatContainer.appendChild(wrapper);
+        this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+
+        if (this.messages.length === 0) {
+          this.welcomeMessage.style.display = 'none';
+        }
+
+        this.messages.push({ role, content });
+      }
+
+      showError(msg) {
+        this.errorText.textContent = msg;
+        this.errorMessage.classList.remove('hidden');
+      }
+
+      setLoading(state) {
+        this.isLoading = state;
+        this.sendButton.disabled = state;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      new ChatApp();
+    });
+  </script>
+</body>
+</html>
