@@ -1,6 +1,6 @@
 # Minion Agent
 
-A web-based intelligent agent that can **chat** or **read and summarize emails** using a Large Language Model (LLM) backend.
+A web-based intelligent agent that can **chat** or **read and summarize emails** using a LLM backend.
 
 ## Project Overview
 
