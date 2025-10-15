@@ -31,9 +31,10 @@ git clone https://github.com/darkimpacto1/minion_agent.git
 cd minion_agent
 ```
 2. Create .env file
-   add email address and imap passkey
-
 ```
+    add email address and imap passkey
+
+
 ```
 2. Run the FastAPI backend:
 
